@@ -5,7 +5,8 @@ from Bio.Blast import NCBIXML, NCBIWWW
 from Bio import SeqIO
 
 potato_id = '4113'
-directory = __file__.replace('UniProt_fetch.py', '')
+this_name = __file__.split('\\')[-1]
+directory = __file__.replace(this_name, '')
 #file_name = directory + 'fasta/test.fasta'
 database = directory + '/db/PGSC_DM_v3.4_pep_nonredundant.fasta'
 accessions_file = directory + '/sequence_list/replicats_combine.csv'
@@ -58,12 +59,15 @@ def split_fasta(input_file, output_prefix, max_sequences=100):
 
 def find_accessions(accessions_file):
         accessions =[]
+        iBAQs_list =[]
         with open(accessions_file, 'r') as file:
                 accessions_lines  = file.read().splitlines()
         for accessions_line in accessions_lines:
-                accession = accessions_line.split(',')[0]
+                line = accessions_line.split(',')
+                accession = line.pop(0)
                 accessions.append(accession)
-        return accessions
+                iBAQs_list.append(line)
+        return accessions, iBAQs_list
 
 def find_sequences(accessions, database): 
 
@@ -116,6 +120,8 @@ def get_accessions(file_name, organism_id):
                 blast_records = NCBIXML.parse(result_stream)
                 accession_list=[]
                 for blast_record in blast_records:
+
+                        input_title = blast_record.query
                         # Get the first hit with the best score
                         if blast_record.alignments:
                                 best_hit = blast_record.alignments[0]  # First hit (best score)
@@ -127,11 +133,38 @@ def get_accessions(file_name, organism_id):
                                 hit_accession = best_hit.accession  
                                 hit_score = best_hit.hsps[0].score
                                 hit_e_value = best_hit.hsps[0].expect 
-                                accession_list.append((hit_accession, hit_title)) 
+                                accession_list.append((input_title, hit_accession, hit_title)) 
                         else: 
-                                accession_list.append(('NotFound', 'NotFound'))
+                                accession_list.append((input_title, 'NotFound', 'NotFound'))
 
         return tuple(accession_list)
+
+# @timer
+# def get_accessions(file_name, organism_id):
+#     accession_list = []
+
+#     # Parse the input file (assume FASTA format) and process each sequence
+#     for n, record in enumerate(SeqIO.parse(file_name, "fasta")):
+#         input_title = record.description  # Get the title/description of the sequence
+#         input_sequence = str(record.seq)  # Get the sequence itself
+        
+#         # Perform BLAST query for the current sequence
+#         with NCBIWWW.qblast("blastp", "swissprot", input_sequence, hitlist_size=1) as result_stream:
+#             blast_records = NCBIXML.parse(result_stream)
+            
+#             for blast_record in blast_records:
+#                 if blast_record.alignments:
+#                     # Get the first hit with the best score
+#                     best_hit = blast_record.alignments[0]
+#                     hit_title = best_hit.hit_def.replace(',', ';')  
+#                     hit_accession = best_hit.accession  
+#                     accession_list.append((input_title, hit_accession, hit_title))
+#                 else:
+#                     accession_list.append((input_title, 'NotFound', 'NotFound'))
+#         print(str(n) + '/' + str(len(SeqIO.parse(file_name, "fasta"))), end='\r')
+                
+
+#     return tuple(accession_list)
 
 def get_uniprot_subcellular_location(accession):
     # UniProt API URL
@@ -162,7 +195,7 @@ Script Block
 
 if __name__ == "__main__":
 
-        accessions = find_accessions(accessions_file)
+        accessions, iBAQs_list = find_accessions(accessions_file)
 
         print(len(accessions))
         file_name = find_sequences(accessions, database)
@@ -172,13 +205,19 @@ if __name__ == "__main__":
                 file_names = split_fasta(file_name, directory + 'db/splitted_sequences')
 
                 for file_name in file_names:
+                        print(f' begins {file_name} data treatment...' )
 
                         Uniprot_accessions = get_accessions(file_name, potato_id)
 
                         for Uniprot_accession in Uniprot_accessions:
                         
                                 with open(accessions_file.replace('.csv', '_output.csv'), 'a') as file:
-                                        file.write(f'{Uniprot_accession[1]},{Uniprot_accession[0]},{get_uniprot_subcellular_location(Uniprot_accession[0])}\n')
+                                        file.write(f'{Uniprot_accession[0]},{Uniprot_accession[2]},{Uniprot_accession[1]},{get_uniprot_subcellular_location(Uniprot_accession[1])}')
+                                        for n, accession in enumerate(accessions):
+                                              if accession in Uniprot_accession[0]:
+                                                    for iBAQ in iBAQs_list[n]:
+                                                          file.write(f',{iBAQ}')
+                                        file.write('\n')
                         print(f'{file_name} processed')
                         os.remove(file_name)
 
