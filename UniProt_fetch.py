@@ -189,6 +189,52 @@ def get_uniprot_subcellular_location(accession):
     else:
         return f"Failed to retrieve data for accession {accession}, HTTP status code: {response.status_code}"
 
+def get_uniprot_function(accession):
+    # UniProt API URL
+    url = f"https://rest.uniprot.org/uniprotkb/{accession}.json"
+    
+    # Send request to UniProt API
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        # Parse the JSON response
+        data = response.json()
+        
+        # Check if subcellular location information exists
+        if 'comments' in data:
+            for comment in data['comments']:
+                if comment['commentType'] == 'FUNCTION':
+                    # Extract the subcellular location description
+                    function = comment['texts'][0]['value'].replace(',', ' ')
+                    return function
+        return "Function information not found."
+    
+    else:
+        return f"Failed to retrieve data for accession {accession}, HTTP status code: {response.status_code}"
+
+def get_uniprot_biological_process(accession):
+    # UniProt API URL
+    url = f"https://rest.uniprot.org/uniprotkb/{accession}.json"
+    
+    # Send request to UniProt API
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        # Parse the JSON response
+        data = response.json()
+        
+        # Check if subcellular location information exists
+        if 'keywords' in data:
+            for ref in data['keywords']:
+                if ref['category'] == 'Biological process':
+                    # Extract the subcellular location description
+                    process = ref['name'].replace(',', ' ')
+                    return process
+
+        return "Biological process not found."
+    
+    else:
+        return f"Failed to retrieve data for accession {accession}, HTTP status code: {response.status_code}"
 '''
 Script Block
 '''
@@ -212,7 +258,7 @@ if __name__ == "__main__":
                         for Uniprot_accession in Uniprot_accessions:
                         
                                 with open(accessions_file.replace('.csv', '_output.csv'), 'a') as file:
-                                        file.write(f'{Uniprot_accession[0]},{Uniprot_accession[2]},{Uniprot_accession[1]},{get_uniprot_subcellular_location(Uniprot_accession[1])}')
+                                        file.write(f'{Uniprot_accession[0]},{Uniprot_accession[2]},{Uniprot_accession[1]},{get_uniprot_subcellular_location(Uniprot_accession[1])}, {get_uniprot_function(Uniprot_accession[1])}, {get_uniprot_biological_process(Uniprot_accession[1])}')
                                         for n, accession in enumerate(accessions):
                                               if accession in Uniprot_accession[0]:
                                                     for iBAQ in iBAQs_list[n]:
@@ -228,5 +274,11 @@ if __name__ == "__main__":
                 for Uniprot_accession in Uniprot_accessions:
 
                         with open(accessions_file.replace('.csv', '_output.csv'), 'a') as file:
-                                file.write(f'{Uniprot_accession},{get_uniprot_subcellular_location(Uniprot_accession)}')
+                                file.write(f'{Uniprot_accession},{get_uniprot_subcellular_location(Uniprot_accession)}, {get_uniprot_function(Uniprot_accession[1])}')
+                                for n, accession in enumerate(accessions):
+                                        if accession in Uniprot_accession[0]:
+                                                for iBAQ in iBAQs_list[n]:
+                                                        file.write(f',{iBAQ}')
+                                file.write('\n')
+                        print(f'{file_name} processed')
         print('Done') 
