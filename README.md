@@ -35,14 +35,7 @@ CSV DATAFILE FORMAT:
 
 DATABASE FORMAT: 
 
-  The database should be in .fasta format: 
-  
-  >Protein_description
-  PROTEINSEQUENCEPROTEINSEQUENCEPROTEINSEQUENCE
-  PROTEINSEQUENCEPROTEINSEQUENCEPROTEINSEQUENCE
-  PROTEINSEQUENCEPROTEINSEQUENCEPROTEINSEQUENCE
-  PROTEINSEQUENCEPROTEINSEQUENCEPROTEINSEQUENCE
-  [...]PROTEINSEQUENCEPROTEINSEQUENCE
+  The database should be in .fasta format
 
 USE: 
   The database we used for retrieving the sequences in Uniprot using an automated blastP is stored in "db" folder.
